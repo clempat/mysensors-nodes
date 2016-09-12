@@ -68,8 +68,11 @@ void presentation()
 
     // Register all sensors to gw (they will be created as child devices)
     present(CHILD_ID_HUM, S_HUM);
+    wait(200);
     present(CHILD_ID_TEMP, S_TEMP);
+    wait(200);
     present(CHILD_ID_TRIP, S_CUSTOM);
+    wait(200);
 }
 
 void setup()
