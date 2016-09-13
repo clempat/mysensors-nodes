@@ -3,13 +3,14 @@
  * v: 1470657545
  */
 
-#define MY_NODE_ID 104
+#define MY_NODE_ID 101
 
 // #define MY_DEBUG
 // #define VERBOSE
 
 #define HEART_BEAT_CYCLE 6   // 5min * 6 = every 30min
 #define BATTERY_REPORT_CYCLE 288 // 5min * 288 = every 24h
+#define FORCE_SEND_CYCLE 12 // 5min*12 = every hour
 #define SENSOR_RETRY 5
 #define RADIO_RETRY 5
 
@@ -47,8 +48,9 @@
 
 int BATTERY_SENSE_PIN = A0;  // select the input pin for the battery sense point
 
-int batteryReportCounter = BATTERY_REPORT_CYCLE ;
+int batteryReportCounter = BATTERY_REPORT_CYCLE;
 int heartBeatCounter = HEART_BEAT_CYCLE;
+int temphumCounter = FORCE_SEND_CYCLE;
 
 // DHT
 DHT dht(HUMIDITY_SENSOR_DIGITAL_PIN, DHT22);
@@ -137,11 +139,11 @@ void readSensor()
   float diffTemp = abs(lastTemp - temp);
   int diffHum = abs(lastHum - hum);
 
-  if (diffTemp > TEMP_TRANSMIT_THRESHOLD) {
+  if (diffTemp > TEMP_TRANSMIT_THRESHOLD || temphumCounter++ > FORCE_SEND_CYCLE) {
     _send(msgTemp.set(temp, 1));
   }
 
-  if (diffHum > HUMI_TRANSMIT_THRESHOLD) {
+  if (diffHum > HUMI_TRANSMIT_THRESHOLD || temphumCounter++ > FORCE_SEND_CYCLE) {
     _send(msgHum.set(hum, 1));
   }
 }
