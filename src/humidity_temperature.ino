@@ -3,7 +3,7 @@
  * v: 1470657545
  */
 
-#define MY_NODE_ID 101
+#define MY_NODE_ID 104
 
 // #define MY_DEBUG
 // #define VERBOSE
@@ -50,7 +50,8 @@ int BATTERY_SENSE_PIN = A0;  // select the input pin for the battery sense point
 
 int batteryReportCounter = BATTERY_REPORT_CYCLE;
 int heartBeatCounter = HEART_BEAT_CYCLE;
-int temphumCounter = FORCE_SEND_CYCLE;
+int tempCounter = FORCE_SEND_CYCLE;
+int humCounter = FORCE_SEND_CYCLE;
 
 // DHT
 DHT dht(HUMIDITY_SENSOR_DIGITAL_PIN, DHT22);
@@ -139,11 +140,11 @@ void readSensor()
   float diffTemp = abs(lastTemp - temp);
   int diffHum = abs(lastHum - hum);
 
-  if (diffTemp > TEMP_TRANSMIT_THRESHOLD || temphumCounter++ > FORCE_SEND_CYCLE) {
+  if (diffTemp > TEMP_TRANSMIT_THRESHOLD || tempCounter++ > FORCE_SEND_CYCLE) {
     _send(msgTemp.set(temp, 1));
   }
 
-  if (diffHum > HUMI_TRANSMIT_THRESHOLD || temphumCounter++ > FORCE_SEND_CYCLE) {
+  if (diffHum > HUMI_TRANSMIT_THRESHOLD || humCounter++ > FORCE_SEND_CYCLE) {
     _send(msgHum.set(hum, 1));
   }
 }
@@ -205,6 +206,7 @@ bool _send(MyMessage msg) {
     switch (msg.type) {
       case V_HUM:
         lastHum = msg.getFloat();
+        humCounter = 0;
         #ifdef VERBOSE
           Serial.print(lastHum);
           Serial.println("% saved");
@@ -213,6 +215,7 @@ bool _send(MyMessage msg) {
         break;
       case V_TEMP:
         lastTemp = msg.getFloat();
+        tempCounter = 0;
         #ifdef VERBOSE
           Serial.print(lastTemp);
           Serial.println("°C saved");
