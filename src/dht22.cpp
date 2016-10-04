@@ -2,8 +2,8 @@
  * This sketch is done for the Temperature/humidity sensors DHT22 for the heating
  * v: 1470657545
  */
-
-#define MY_NODE_ID 104
+#include <Arduino.h>
+#define MY_NODE_ID 105
 
 // #define MY_DEBUG
 // #define VERBOSE
@@ -78,32 +78,58 @@ void presentation()
     wait(200);
 }
 
-void setup()
-{
-  // use the 1.1 V internal reference
-  #if defined(__AVR_ATmega2560__)
-     analogReference(INTERNAL1V1);
-  #else
-     analogReference(INTERNAL);
-  #endif
-  dht.begin();
-}
+bool _send(MyMessage msg) {
+  bool sent = false;
+  int retry = 0;
 
-void loop()
-{
-
-  if (heartBeatCounter++ >= (HEART_BEAT_CYCLE - 1)) {
-    _send(alive.set(lastHeartBeat? false : true));
+  while(!(sent = send(msg) && (retry++ < RADIO_RETRY))) {
+    #ifdef VERBOSE
+      Serial.print("Sending ");
+      Serial.print(retry);
+      Serial.print(" on ");
+      Serial.print(RADIO_RETRY);
+      Serial.println("...")
+    #endif
+    if (isTransportReady()) {
+      wait(200);
+    } else {
+      wait(5000);
+    }
   }
 
-  readSensor();
-
-  // Check battery
-  if (batteryReportCounter++ >= (BATTERY_REPORT_CYCLE - 1)) {
-    readBattery();
+  if (sent == true) {
+    switch (msg.type) {
+      case V_HUM:
+        lastHum = msg.getFloat();
+        humCounter = 0;
+        #ifdef VERBOSE
+          Serial.print(lastHum);
+          Serial.println("% saved");
+          Serial.println("Humidity sent");
+        #endif
+        break;
+      case V_TEMP:
+        lastTemp = msg.getFloat();
+        tempCounter = 0;
+        #ifdef VERBOSE
+          Serial.print(lastTemp);
+          Serial.println("°C saved");
+          Serial.println("Temperature sent");
+        #endif
+        break;
+      case V_VAR1:
+        lastHeartBeat = msg.getBool();
+        heartBeatCounter = 0;
+        #ifdef VERBOSE
+          Serial.print(lastHeartBeat);
+          Serial.println(" saved");
+          Serial.println("HeartBeat sent");
+        #endif
+        break;
+    }
   }
 
-  sleep(SLEEP_TIME);
+  return sent;
 }
 
 void readSensor()
@@ -183,56 +209,30 @@ void readBattery() {
   }
 }
 
-bool _send(MyMessage msg) {
-  bool sent = false;
-  int retry = 0;
+void setup()
+{
+  // use the 1.1 V internal reference
+  #if defined(__AVR_ATmega2560__)
+     analogReference(INTERNAL1V1);
+  #else
+     analogReference(INTERNAL);
+  #endif
+  dht.begin();
+}
 
-  while(!(sent = send(msg) && (retry++ < RADIO_RETRY))) {
-    #ifdef VERBOSE
-      Serial.print("Sending ");
-      Serial.print(retry);
-      Serial.print(" on ");
-      Serial.print(RADIO_RETRY);
-      Serial.println("...")
-    #endif
-    if (isTransportReady()) {
-      wait(200);
-    } else {
-      wait(5000);
-    }
+void loop()
+{
+
+  if (heartBeatCounter++ >= (HEART_BEAT_CYCLE - 1)) {
+    _send(alive.set(lastHeartBeat? false : true));
   }
 
-  if (sent == true) {
-    switch (msg.type) {
-      case V_HUM:
-        lastHum = msg.getFloat();
-        humCounter = 0;
-        #ifdef VERBOSE
-          Serial.print(lastHum);
-          Serial.println("% saved");
-          Serial.println("Humidity sent");
-        #endif
-        break;
-      case V_TEMP:
-        lastTemp = msg.getFloat();
-        tempCounter = 0;
-        #ifdef VERBOSE
-          Serial.print(lastTemp);
-          Serial.println("°C saved");
-          Serial.println("Temperature sent");
-        #endif
-        break;
-      case V_VAR1:
-        lastHeartBeat = msg.getBool();
-        heartBeatCounter = 0;
-        #ifdef VERBOSE
-          Serial.print(lastHeartBeat);
-          Serial.println(" saved");
-          Serial.println("HeartBeat sent");
-        #endif
-        break;
-    }
+  readSensor();
+
+  // Check battery
+  if (batteryReportCounter++ >= (BATTERY_REPORT_CYCLE - 1)) {
+    readBattery();
   }
 
-  return sent;
+  sleep(SLEEP_TIME);
 }
